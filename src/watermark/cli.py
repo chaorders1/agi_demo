@@ -59,7 +59,10 @@ def cmd_detect(args):
     
     try:
         has_watermark, confidence, decoded = detect_watermark(
-            args.image, args.method, args.watermark, args.length
+            image_path=args.image, 
+            method=args.method, 
+            watermark=args.watermark, 
+            length=args.length
         )
         
         if args.watermark is not None:

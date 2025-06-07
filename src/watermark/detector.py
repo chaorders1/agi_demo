@@ -9,6 +9,94 @@ import numpy as np
 from imwatermark import WatermarkDecoder
 
 
+def calculate_similarity(str1, str2):
+    """
+    计算两个字符串的相似度
+    使用编辑距离算法
+    
+    Returns:
+        Float between 0-1, 1为完全相同
+    """
+    if not str1 or not str2:
+        return 0.0
+    
+    # 计算编辑距离
+    def edit_distance(s1, s2):
+        m, n = len(s1), len(s2)
+        dp = [[0] * (n + 1) for _ in range(m + 1)]
+        
+        for i in range(m + 1):
+            dp[i][0] = i
+        for j in range(n + 1):
+            dp[0][j] = j
+            
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                if s1[i-1] == s2[j-1]:
+                    dp[i][j] = dp[i-1][j-1]
+                else:
+                    dp[i][j] = min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1
+        
+        return dp[m][n]
+    
+    distance = edit_distance(str1.lower(), str2.lower())
+    max_len = max(len(str1), len(str2))
+    
+    if max_len == 0:
+        return 1.0
+    
+    similarity = 1 - (distance / max_len)
+    return max(0.0, similarity)
+
+
+def fuzzy_watermark_match(expected, decoded, similarity_threshold=0.8):
+    """
+    模糊匹配水印内容
+    
+    Args:
+        expected: 期望的水印内容
+        decoded: 解码得到的内容
+        similarity_threshold: 相似度阈值
+        
+    Returns:
+        (is_match, similarity_score, match_reason)
+    """
+    if not decoded:
+        return False, 0.0, "解码内容为空"
+    
+    # 1. 精确匹配
+    if decoded == expected:
+        return True, 1.0, "精确匹配"
+    
+    # 2. 相似度匹配
+    similarity = calculate_similarity(expected, decoded)
+    if similarity >= similarity_threshold:
+        return True, similarity, f"高相似度匹配 ({similarity:.1%})"
+    
+    # 3. 包含关键词匹配
+    # 提取主要关键词（长度 >= 4 的子串）
+    keywords = []
+    expected_lower = expected.lower()
+    for i in range(len(expected_lower) - 3):
+        keyword = expected_lower[i:i+4]
+        if keyword.isalnum():
+            keywords.append(keyword)
+    
+    decoded_lower = decoded.lower()
+    matched_keywords = sum(1 for kw in keywords if kw in decoded_lower)
+    keyword_ratio = matched_keywords / len(keywords) if keywords else 0
+    
+    if keyword_ratio >= 0.6:  # 60%的关键词匹配
+        return True, keyword_ratio, f"关键词匹配 ({keyword_ratio:.1%})"
+    
+    # 4. 编辑距离匹配（允许1-2个字符差异）
+    distance = abs(len(expected) - len(decoded))
+    if distance <= 2 and similarity >= 0.6:
+        return True, similarity, f"编辑距离匹配 (相似度: {similarity:.1%})"
+    
+    return False, similarity, f"不匹配 (相似度: {similarity:.1%})"
+
+
 def detect_watermark(image_path, method='dwtDct', watermark=None, length=None):
     """
     检测图片是否包含指定水印内容。
@@ -44,10 +132,14 @@ def detect_watermark(image_path, method='dwtDct', watermark=None, length=None):
                     wm_decoded_str = wm_decoded.decode('utf-8')
                 except Exception:
                     wm_decoded_str = str(wm_decoded)
-                if wm_decoded_str == watermark:
-                    return True, 1.0, wm_decoded_str
+                
+                # 使用模糊匹配而不是精确匹配
+                is_match, similarity, match_reason = fuzzy_watermark_match(watermark, wm_decoded_str)
+                
+                if is_match:
+                    return True, similarity, wm_decoded_str
                 else:
-                    return False, 0.0, wm_decoded_str
+                    return False, similarity, wm_decoded_str
             else:
                 return False, 0.0, None
         except Exception as e:
