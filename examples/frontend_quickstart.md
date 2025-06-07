@@ -20,19 +20,28 @@ const addWatermark = async (imageFile: File, text: string) => {
   return await response.json();
 };
 
-// 3. 检测水印 (推荐不填length，使用智能推断)
+// 3. 检测水印 🚀 v2.0 鲁棒智能检测 (推荐不填length)
 const detectWatermark = async (imageFile: File, watermark: string) => {
   const formData = new FormData();
   formData.append('image', imageFile);
   formData.append('watermark', watermark);
-  // 不添加length字段，让API智能推断
+  // 不添加length字段，使用鲁棒智能检测 🧠
   
   const response = await fetch(`${API_BASE}/api/watermark/detect`, {
     method: 'POST',
     body: formData,
   });
   
-  return await response.json();
+  const result = await response.json();
+  
+  // v2.0 新特性：即使解码文本损坏，也能检测成功
+  if (result.success && result.has_watermark) {
+    console.log(`✅ 检测成功! 置信度: ${(result.confidence * 100).toFixed(0)}%`);
+    console.log(`🔍 使用方法: ${result.debug_info?.match_method}`);
+    console.log(`📏 使用长度: ${result.debug_info?.used_length}位`);
+  }
+  
+  return result;
 };
 ```
 

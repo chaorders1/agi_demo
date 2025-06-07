@@ -58,7 +58,9 @@ def cmd_detect(args):
         return 1
     
     try:
-        has_watermark, confidence, decoded = detect_watermark(
+        from .detector import detect_watermark_robust
+        
+        has_watermark, confidence, decoded, debug_info = detect_watermark_robust(
             image_path=args.image, 
             method=args.method, 
             watermark=args.watermark, 
@@ -69,12 +71,26 @@ def cmd_detect(args):
             if has_watermark:
                 if args.confidence:
                     print(f"yes (confidence: {confidence:.0%})")
+                    if args.verbose:
+                        print(f"📊 检测详情:")
+                        print(f"   使用长度: {debug_info.get('used_length', 'unknown')} 位")
+                        print(f"   解码文本: '{decoded}'")
+                        if debug_info.get('best_matches'):
+                            best_match = debug_info['best_matches'][-1]
+                            print(f"   匹配原因: {best_match['reason']}")
                 else:
                     print("yes")
                 return 0
             else:
                 if args.confidence:
                     print(f"no (decoded: {decoded})")
+                    if args.verbose and debug_info.get('decoding_attempts'):
+                        print(f"📊 尝试了 {len(debug_info['tried_lengths'])} 种长度")
+                        successful_attempts = [a for a in debug_info['decoding_attempts'] if a['success']]
+                        if successful_attempts:
+                            print(f"   成功解码 {len(successful_attempts)} 次，但无匹配")
+                            for attempt in successful_attempts[:3]:  # 显示前3个
+                                print(f"   - 长度{attempt['length']}: '{attempt['decoded_text']}'")
                 else:
                     print("no")
                 return 1
@@ -169,6 +185,8 @@ Examples:
                              help='Show confidence level')
     detect_parser.add_argument('--length', '-l', type=int, default=None,
                              help='Watermark length in bits (auto-calculated if not provided)')
+    detect_parser.add_argument('--verbose', '-v', action='store_true',
+                             help='Show detailed detection information')
     
     # Scan for watermarks command
     scan_parser = subparsers.add_parser('scan', help='Scan image for any watermarks')

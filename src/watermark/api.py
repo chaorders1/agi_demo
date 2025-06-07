@@ -55,6 +55,7 @@ class WatermarkDetectResponse(BaseModel):
     confidence: Optional[float] = None
     decoded_content: Optional[str] = None
     message: str
+    debug_info: Optional[dict] = None  # 新增调试信息
 
 
 
@@ -235,12 +236,18 @@ async def detect_watermark_endpoint(
     length: Optional[int] = Form(default=None, description="Watermark length in bits (留空使用智能推断)", example=None)
 ):
     """
-    检测图片中是否包含指定的水印内容 🧠 智能检测
+    检测图片中是否包含指定的水印内容 🚀 鲁棒智能检测 v2.0
     
     - **image**: 待检测的图片文件
     - **watermark**: 期望的水印内容
     - **method**: 水印算法 (默认dwtDct)
     - **length**: 水印长度(位)，留空使用智能推断，自动尝试多种长度
+    
+    🧠 **智能特性:**
+    - 容错处理：即使水印数据损坏也能检测
+    - 多重匹配：模糊匹配 + 签名匹配 + 模式识别
+    - 自动长度探测：±32位范围智能搜索
+    - 编码恢复：支持多种文本编码方式
     
     💡 推荐不填写length参数，让API自动推断最佳长度
     """
@@ -260,50 +267,37 @@ async def detect_watermark_endpoint(
         input_path = save_temp_file(image)
         
         try:
-            # 智能检测水印
-            if length is None or length == 0:
-                # 使用智能长度推断和多次尝试
-                suggested_lengths = get_suggested_lengths(watermark)
-                best_result = None
-                best_confidence = 0.0
-                
-                for try_length in suggested_lengths:
-                    has_watermark, confidence, decoded = detect_watermark(
-                        input_path, method, watermark, try_length
-                    )
-                    
-                    # 如果找到匹配，优先选择置信度最高的
-                    if has_watermark and (best_result is None or confidence > best_confidence):
-                        best_result = (has_watermark, confidence, decoded, try_length)
-                        best_confidence = confidence
-                    
-                    # 如果置信度很高，直接返回
-                    if confidence and confidence > 0.9:
-                        break
-                
-                # 如果没有找到匹配，返回置信度最高的结果
-                if best_result is None:
-                    # 使用第一个长度的结果
-                    has_watermark, confidence, decoded = detect_watermark(
-                        input_path, method, watermark, suggested_lengths[0]
-                    )
-                    message = f"检测完成 (尝试了 {len(suggested_lengths)} 种长度，建议长度: {suggested_lengths[0]} 位)"
-                else:
-                    has_watermark, confidence, decoded, used_length = best_result
-                    message = f"检测完成 (使用长度: {used_length} 位)"
+            # 使用鲁棒智能检测
+            from .detector import detect_watermark_robust
+            
+            has_watermark, confidence, decoded, debug_info = detect_watermark_robust(
+                input_path, method, watermark, length
+            )
+            
+            # 构建消息
+            if has_watermark:
+                used_length = debug_info.get('used_length', 'unknown')
+                match_method = debug_info.get('match_method', 'unknown')
+                message = f"🎯 检测成功 (长度: {used_length}位, 方法: {match_method})"
             else:
-                # 使用指定长度
-                has_watermark, confidence, decoded = detect_watermark(
-                    input_path, method, watermark, length
-                )
-                message = f"检测完成 (使用指定长度: {length} 位)"
+                tried_count = len(debug_info.get('tried_lengths', []))
+                message = f"🔍 检测完成，未找到匹配 (已尝试 {tried_count} 种长度)"
+            
+            # 准备调试信息（简化版，避免太冗长）
+            simplified_debug = {
+                'used_length': debug_info.get('used_length'),
+                'match_method': debug_info.get('match_method'),
+                'tried_lengths_count': len(debug_info.get('tried_lengths', [])),
+                'successful_decodes': len([a for a in debug_info.get('decoding_attempts', []) if a.get('success')])
+            }
             
             return WatermarkDetectResponse(
                 success=True,
                 has_watermark=has_watermark,
                 confidence=confidence,
                 decoded_content=decoded,
-                message=message
+                message=message,
+                debug_info=simplified_debug
             )
             
         finally:
