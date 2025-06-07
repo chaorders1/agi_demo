@@ -34,6 +34,7 @@ python -m src.watermark.cli add image.png --text "SocialNetwork0"
 
 # 2. 检测水印
 python -m src.watermark.cli detect image_watermarked.png --watermark "SocialNetwork0"
+python -m src.watermark.cli detect examples/sample_images/input.png --watermark "SocialNetwork0"
 
 # 3. 扫描未知水印
 python -m src.watermark.cli scan image.png
@@ -73,6 +74,54 @@ has_watermark, confidence, decoded = detect_watermark(
 )
 print(f"Has watermark: {has_watermark}")
 ```
+
+## 🌐 FastAPI REST API
+
+现在支持通过REST API使用水印功能，方便前端集成！
+
+### 启动API服务器
+
+```bash
+# 安装FastAPI依赖
+pip install -r requirements.txt
+
+# 启动API服务器
+python run_api.py
+```
+
+### API端点
+
+- **POST /api/watermark/add** - 添加水印到图片
+- **POST /api/watermark/detect** - 检测特定水印
+- **POST /api/watermark/extract** - 提取水印内容
+- **POST /api/watermark/scan** - 扫描任何可能的水印
+- **GET /api/download/{filename}** - 下载处理后的图片
+
+### 访问API文档
+
+启动服务器后访问：
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+### NextJS前端集成示例
+
+```typescript
+// 添加水印
+const addWatermark = async (imageFile: File, text: string) => {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  formData.append('text', text);
+  
+  const response = await fetch('http://localhost:8000/api/watermark/add', {
+    method: 'POST',
+    body: formData,
+  });
+  
+  return await response.json();
+};
+```
+
+详细API使用说明请查看: [examples/api_usage.md](examples/api_usage.md)
 
 ## 🛡️ 安全性
 

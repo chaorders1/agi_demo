@@ -9,3 +9,8 @@ PyWavelets>=1.1.1
 
 # Invisible watermark library from PyPI
 invisible-watermark>=0.1.5
+
+# FastAPI and related dependencies for REST API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
