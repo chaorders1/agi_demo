@@ -4,7 +4,18 @@ A Python script that adds invisible watermarks to images using the invisible-wat
 
 ## Installation
 
+### Option 1: Using install script
 ```bash
+chmod +x install.sh
+./install.sh
+```
+
+### Option 2: Manual installation
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Install invisible-watermark from GitHub
 pip install git+https://github.com/ShieldMnt/invisible-watermark.git
 ```
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Invisible Watermark Tool
 Add invisible watermarks to images using the invisible-watermark library
@@ -97,7 +97,7 @@ def main():
     # Add watermark command
     add_parser = subparsers.add_parser('add', help='Add watermark to image')
     add_parser.add_argument('input', help='Input image path')
-    add_parser.add_argument('output', help='Output image path')
+    add_parser.add_argument('output', nargs='?', help='Output image path (optional, defaults to input_watermarked.ext)')
     add_parser.add_argument('--text', '-t', required=True, help='Watermark text')
     add_parser.add_argument('--method', '-m', default='dwtDct', 
                           choices=['dwtDct', 'rivaGan'],
@@ -119,6 +119,18 @@ def main():
         if not os.path.exists(args.input):
             print(f"Error: Input file '{args.input}' not found")
             return 1
+        
+        # Auto-generate output filename if not provided
+        if args.output is None:
+            # Split the input path into name and extension
+            input_dir = os.path.dirname(args.input)
+            input_name = os.path.basename(args.input)
+            name_without_ext, ext = os.path.splitext(input_name)
+            
+            # Generate output filename: input_watermarked.ext
+            output_filename = f"{name_without_ext}_watermarked{ext}"
+            args.output = os.path.join(input_dir, output_filename)
+            print(f"Auto-generated output path: {args.output}")
             
         # Create output directory if needed
         output_dir = os.path.dirname(args.output)

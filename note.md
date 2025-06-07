@@ -1,4 +1,7 @@
 ## Watermark and fingerprint
 
-SocialNetwork0, Inc. @ AGI House
-06/07/2025 — All rights reserved.
+
+
+text "SocialNetwork0, Inc. @ AGI House"
+
+  python detect_watermark.py output.png --watermark "SocialNetwork0, Inc. @ AGI House"

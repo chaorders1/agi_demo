@@ -1,0 +1,11 @@
+# Invisible Watermark Tools Requirements
+# Install with: pip install -r requirements.txt
+
+# Core dependencies
+opencv-python>=4.1.0.25
+numpy>=1.17.0
+Pillow>=6.0.0
+PyWavelets>=1.1.1
+
+# Invisible watermark library from PyPI
+invisible-watermark>=0.1.5

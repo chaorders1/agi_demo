@@ -10,90 +10,54 @@ import numpy as np
 from imwatermark import WatermarkEncoder, WatermarkDecoder
 
 
-def detect_watermark(image_path, method='dwtDct'):
+def detect_watermark(image_path, method='dwtDct', watermark=None, length=None):
     """
-    Detect if an image has been processed by invisible-watermark library
-    
-    Since the library doesn't always preserve the exact watermark content,
-    we detect based on the presence of watermark patterns in the image.
+    检测图片是否包含指定水印内容。
+    如果提供了水印内容，则解码后与输入内容比对，一致才算有水印。
+    如果未提供水印内容，则只输出解码内容，不做自动判断。
     """
-    # Load the image
     bgr = cv2.imread(image_path)
     if bgr is None:
         raise ValueError(f"Could not load image from {image_path}")
-    
-    # Create a reference image without watermark (solid color)
-    reference = np.ones_like(bgr) * 128
-    
-    # Try to decode watermarks from both images
-    has_watermark = False
-    confidence = 0.0
-    
-    # Test multiple lengths
-    test_lengths = [8, 16, 32, 64]
-    
-    for length in test_lengths:
+
+    # 自动推断长度
+    if watermark is not None and length is None:
+        length = len(watermark.encode('utf-8')) * 8
+
+    if watermark is not None and length is not None:
+        decoder = WatermarkDecoder('bytes', length)
         try:
-            decoder = WatermarkDecoder('bytes', length)
-            
-            # Decode from target image
-            wm_target = decoder.decode(bgr, method)
-            
-            # Decode from reference (should be noise/nothing meaningful)
-            wm_ref = decoder.decode(reference, method)
-            
-            if wm_target is not None and wm_ref is not None:
-                # Compare the statistical properties
-                target_variance = np.var(list(wm_target))
-                ref_variance = np.var(list(wm_ref))
-                
-                # If target has significantly different variance, likely has watermark
-                if target_variance > 0 and abs(target_variance - ref_variance) > 10:
-                    has_watermark = True
-                    confidence = max(confidence, 0.7)
-                    
-                # Check for non-random patterns
-                unique_target = len(set(wm_target))
-                unique_ref = len(set(wm_ref))
-                
-                if unique_target < unique_ref * 0.8 and unique_target > 1:
-                    has_watermark = True
-                    confidence = max(confidence, 0.8)
-                    
-        except:
-            continue
-    
-    # Additional check: Compare image statistics
-    # Watermarked images often have subtle statistical differences
-    original_mean = np.mean(bgr)
-    original_std = np.std(bgr)
-    
-    # Check DCT coefficients for watermark artifacts
-    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-    # Ensure the image dimensions are suitable for DCT (must be even)
-    h, w = gray.shape
-    if h % 2 != 0:
-        gray = gray[:-1, :]
-    if w % 2 != 0:
-        gray = gray[:, :-1]
-    
-    # Resize to a standard size for DCT if needed
-    if gray.shape[0] < 8 or gray.shape[1] < 8:
-        gray = cv2.resize(gray, (max(8, gray.shape[1]), max(8, gray.shape[0])))
-    
-    try:
-        dct = cv2.dct(np.float32(gray))
-        dct_std = np.std(dct)
-    except:
-        # If DCT fails, use a default value
-        dct_std = original_std
-    
-    # Heuristic: watermarked images tend to have slightly different DCT statistics
-    if dct_std > original_std * 1.01:
-        confidence = max(confidence, 0.6)
-        has_watermark = True
-    
-    return has_watermark, confidence
+            wm_decoded = decoder.decode(bgr, method)
+            if wm_decoded is not None:
+                try:
+                    wm_decoded_str = wm_decoded.decode('utf-8')
+                except Exception:
+                    wm_decoded_str = str(wm_decoded)
+                if wm_decoded_str == watermark:
+                    return True, 1.0, wm_decoded_str
+                else:
+                    return False, 0.0, wm_decoded_str
+            else:
+                return False, 0.0, None
+        except Exception as e:
+            return False, 0.0, None
+    else:
+        # 未输入水印内容，只做解码
+        # 默认尝试32位长度
+        try_lengths = [32, 64, 16, 8] if length is None else [length]
+        for l in try_lengths:
+            decoder = WatermarkDecoder('bytes', l)
+            try:
+                wm_decoded = decoder.decode(bgr, method)
+                if wm_decoded is not None:
+                    try:
+                        wm_decoded_str = wm_decoded.decode('utf-8')
+                    except Exception:
+                        wm_decoded_str = str(wm_decoded)
+                    return None, None, wm_decoded_str
+            except Exception:
+                continue
+        return None, None, None
 
 
 def main():
@@ -104,22 +68,29 @@ def main():
                         help='Watermarking method (default: dwtDct)')
     parser.add_argument('--confidence', '-c', action='store_true',
                         help='Show confidence level')
-    
+    parser.add_argument('--watermark', '-w', type=str, default=None,
+                        help='Known watermark content (string)')
+    parser.add_argument('--length', '-l', type=int, default=None,
+                        help='Watermark length in bits (optional, auto if not set)')
     args = parser.parse_args()
-    
+
     try:
-        has_watermark, confidence = detect_watermark(args.image, args.method)
-        
-        if args.confidence:
+        has_watermark, confidence, decoded = detect_watermark(
+            args.image, args.method, args.watermark, args.length)
+        if args.watermark is not None:
             if has_watermark:
-                print(f"yes (confidence: {confidence:.1%})")
+                if args.confidence:
+                    print(f"yes (confidence: {confidence:.0%})")
+                else:
+                    print("yes")
             else:
-                print("no")
+                if args.confidence:
+                    print(f"no (decoded: {decoded})")
+                else:
+                    print("no")
         else:
-            print("yes" if has_watermark else "no")
-        
+            print(f"[未输入水印内容，无法自动判断] 解码内容: {decoded}")
         return 0 if has_watermark else 1
-        
     except Exception as e:
         print(f"Error: {e}")
         return 2
