@@ -18,3 +18,12 @@ python-multipart>=0.0.6
 # Additional dependencies that might be needed
 aiofiles>=0.8.0  # 异步文件操作
 python-jose>=3.3.0  # JWT支持（如果需要）
+
+# Railway deployment specific dependencies
+gunicorn>=21.2.0  # 备用WSGI服务器
+click>=8.0.0  # uvicorn依赖
+h11>=0.14.0  # HTTP/1.1协议支持
+httptools>=0.6.0  # HTTP解析器
+python-dotenv>=1.0.0  # 环境变量支持
+watchfiles>=0.21.0  # 文件监控
+websockets>=11.0.0  # WebSocket支持

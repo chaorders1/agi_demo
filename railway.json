@@ -2,12 +2,12 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "nixpacks",
-    "buildCommand": "pip install -r requirements.txt"
+    "buildCommand": "pip install --upgrade pip && pip install -r requirements.txt"
   },
   "deploy": {
     "startCommand": "python minimal_start.py",
     "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 300,
+    "healthcheckTimeout": 600,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   },
@@ -15,7 +15,12 @@
     "production": {
       "variables": {
         "PYTHONPATH": "/app/src",
-        "ENVIRONMENT": "production"
+        "ENVIRONMENT": "production",
+        "OPENCV_IO_ENABLE_OPENEXR": "0",
+        "OPENCV_IO_ENABLE_JASPER": "0",
+        "QT_QPA_PLATFORM": "offscreen",
+        "PYTHONUNBUFFERED": "1",
+        "PIP_NO_CACHE_DIR": "1"
       }
     }
   }

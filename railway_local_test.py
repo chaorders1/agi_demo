@@ -171,7 +171,11 @@ class RailwayLocalTester:
         """启动服务"""
         # 确定启动脚本
         if script_name:
-            start_script = script_name
+            # 如果指定了脚本名，确保添加python前缀
+            if script_name.endswith('.py') and not script_name.startswith('python '):
+                start_script = f"python {script_name}"
+            else:
+                start_script = script_name
         elif 'deploy' in self.railway_config and 'startCommand' in self.railway_config['deploy']:
             start_script = self.railway_config['deploy']['startCommand']
         else:

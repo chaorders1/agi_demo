@@ -1,22 +1,14 @@
 [phases.setup]
-nixPkgs = [
-    "python3", 
-    "gcc", 
-    "pkg-config",
-    "libGL",
-    "libglib",
-    "glib",
-    "libxext",
-    "libxrender",
-    "libgomp"
-]
+nixPkgs = ["python39", "pip"]
 
 [phases.install]
 cmds = [
-    "python -m venv --copies /opt/venv",
-    ". /opt/venv/bin/activate && pip install --upgrade pip",
-    ". /opt/venv/bin/activate && pip install --no-cache-dir -r requirements.txt"
+    "pip install --upgrade pip",
+    "pip install --no-cache-dir -r requirements.txt"
 ]
+
+[phases.build]
+cmds = ["echo 'Build phase completed'"]
 
 [start]
 cmd = "python minimal_start.py"
@@ -26,4 +18,7 @@ PYTHONPATH = "/app/src"
 ENVIRONMENT = "production"
 # 设置OpenCV使用headless模式
 OPENCV_IO_ENABLE_OPENEXR = "0"
-OPENCV_IO_ENABLE_JASPER = "0" 
+OPENCV_IO_ENABLE_JASPER = "0"
+QT_QPA_PLATFORM = "offscreen"
+PYTHONUNBUFFERED = "1"
+PIP_NO_CACHE_DIR = "1" 
