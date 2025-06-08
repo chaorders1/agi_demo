@@ -2,9 +2,9 @@
 # Install with: pip install -r requirements.txt
 
 # Core dependencies
-opencv-python>=4.1.0.25
-numpy>=1.17.0
-Pillow>=6.0.0
+opencv-python-headless>=4.5.0  # 使用headless版本，更适合服务器环境
+numpy>=1.19.0
+Pillow>=8.0.0
 PyWavelets>=1.1.1
 
 # Invisible watermark library from PyPI
@@ -14,3 +14,7 @@ invisible-watermark>=0.1.5
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 python-multipart>=0.0.6
+
+# Additional dependencies that might be needed
+aiofiles>=0.8.0  # 异步文件操作
+python-jose>=3.3.0  # JWT支持（如果需要）
