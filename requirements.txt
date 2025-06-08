@@ -1,9 +1,9 @@
 # Invisible Watermark Tools Requirements
 # Install with: pip install -r requirements.txt
 
-# Core dependencies
-opencv-python-headless>=4.5.0  # 使用headless版本，更适合服务器环境
-numpy>=1.19.0
+# Core dependencies - 使用headless版本避免GUI依赖
+opencv-python-headless==4.8.1.78  # 固定版本，避免GUI依赖
+numpy>=1.19.0,<2.0.0  # 限制numpy版本避免兼容性问题
 Pillow>=8.0.0
 PyWavelets>=1.1.1
 
