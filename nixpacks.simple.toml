@@ -1,0 +1,13 @@
+# 简化版Nixpacks配置 - 如果主配置有问题可以使用这个
+[phases.setup]
+nixPkgs = ["python3"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "python minimal_start.py"
+
+[variables]
+PYTHONPATH = "/app/src"
+ENVIRONMENT = "production" 
